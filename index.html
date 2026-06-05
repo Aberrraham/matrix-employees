@@ -538,7 +538,7 @@ async function clSubmit(){
   var date=document.getElementById('clDate').value;
   var time=document.getElementById('clTime').value;
   if(!theme||!date||!time){gToast('Fill in Theme, Date and Time first.',true);return;}
-  var payload={theme:theme,date:date,time:time};
+  var payload={action:'engagement',theme:theme,date:date,time:time};
   CL_POINTS.forEach(function(cp,i){
     var key=cp.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
     var sel=document.getElementById('cl-sel-'+i);
@@ -546,13 +546,13 @@ async function clSubmit(){
   });
   var btn=document.getElementById('clSubmitBtn'); btn.disabled=true; btn.textContent='Submitting\u2026';
   try{
-var form=new FormData();
-form.append('payload',JSON.stringify(payload));
-await fetch(CL_URL,{method:'POST',mode:'no-cors',body:form});    gToast('\u2714 Submitted to Google Sheets');
+    var form=new FormData();
+    form.append('payload',JSON.stringify(payload));
+    await fetch(CL_URL,{method:'POST',mode:'no-cors',body:form});
+    gToast('\u2714 Submitted to Google Sheets');
     setTimeout(clReset,1500);
   }catch(e){gToast('Connection error. Try again.',true);}
   btn.disabled=false; btn.textContent='Submit to Sheet';
-}
 
 // ===== INVENTORY ENGINE (reusable) =====
 function makeInventory(cfg){
