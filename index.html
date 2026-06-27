@@ -502,117 +502,354 @@ function doLogout(){
   document.getElementById('page-portal').classList.add('active');
 }
 
-// ===== CHECKLIST =====
-var CL_URL='https://script.google.com/macros/s/AKfycbx7557jk94iqhKrDK_Ckgc50d9UbCfFzELjTTV7BVxN1MdZm2cwpEv09AC_y0cxBGS3/exec';
-var CL_STAFF=['Vaibhav','Suhas','Abhijith','Hemant','Driti','Sanika','Sakshi','Shyam','Sanjay','Sensei','Sama'];
-var CL_POINTS=['Initial Engagement','Inspection','Waiver Form','Briefing','Theme Props','AC','Lights','Music','Game Mastery','Visual Effects','Debriefing','Photos','Feedback','Payment','Reset'];
-var CL_SELECTED={}; // i -> array of staff names
-function clInit(){
-  document.getElementById('clDate').value=new Date().toISOString().split('T')[0];
-  var grid=document.getElementById('clGrid'); grid.innerHTML='';
-  CL_POINTS.forEach(function(cp,i){
-    CL_SELECTED[i]=[];
-    var cell=document.createElement('div'); cell.className='check-cell'; cell.id='cl-cell-'+i;
-    var opts=CL_STAFF.map(function(s){
-      var oid='cl-opt-'+i+'-'+s.replace(/[^a-zA-Z0-9]/g,'');
-      return '<label class="ms-option" id="'+oid+'" onclick="event.stopPropagation();clToggleStaff('+i+',\''+s+'\')">'
-        +'<input type="checkbox" onclick="event.stopPropagation()" />'+s+'</label>';
-    }).join('');
-    cell.innerHTML='<div class="cell-top"><div class="cell-label">'+cp+'</div><div class="cell-index">'+String(i+1).padStart(2,'0')+'</div></div>'
-      +'<div class="multi-select" id="cl-ms-'+i+'">'
-      +'<button type="button" class="multi-select-toggle" id="cl-toggle-'+i+'" onclick="clTogglePanel('+i+')"><span class="ms-label" id="cl-toggle-label-'+i+'">&#8212; Staff &#8212;</span><span class="ms-caret">&#9660;</span></button>'
-      +'<div class="multi-select-panel" id="cl-panel-'+i+'">'+opts+'</div>'
-      +'</div>'
-      +'<div class="done-tick">&#10004; ASSIGNED</div>';
-    grid.appendChild(cell);
-  });
-  clUpdateProgress();
-  if(!window._clOutsideClickBound){
-    window._clOutsideClickBound=true;
-    document.addEventListener('click',function(e){
-      if(!e.target.closest('.multi-select')) clCloseAllPanels();
-    });
-  }
+//* =========================
+   CHECKLIST
+========================= */
+
+.meta-bar{
+    background:var(--surface2);
+    border-bottom:1px solid var(--border);
+    padding:16px 28px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    align-items:flex-end;
 }
-function clCloseAllPanels(){
-  CL_POINTS.forEach(function(_,i){
-    var panel=document.getElementById('cl-panel-'+i),toggle=document.getElementById('cl-toggle-'+i);
-    if(panel)panel.classList.remove('open');
-    if(toggle)toggle.classList.remove('open');
-  });
+
+.meta-field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
 }
-function clTogglePanel(i){
-  var panel=document.getElementById('cl-panel-'+i),toggle=document.getElementById('cl-toggle-'+i);
-  var willOpen=!panel.classList.contains('open');
-  clCloseAllPanels();
-  if(willOpen){panel.classList.add('open');toggle.classList.add('open');}
+
+.meta-field label{
+    font-family:var(--mono);
+    font-size:.62rem;
+    color:var(--text-dim);
+    letter-spacing:.1em;
+    text-transform:uppercase;
 }
-function clToggleStaff(i,name){
-  var arr=CL_SELECTED[i]||(CL_SELECTED[i]=[]);
-  var idx=arr.indexOf(name);
-  if(idx===-1)arr.push(name); else arr.splice(idx,1);
-  var oid='cl-opt-'+i+'-'+name.replace(/[^a-zA-Z0-9]/g,'');
-  var opt=document.getElementById(oid);
-  if(opt){
-    var cb=opt.querySelector('input[type=checkbox]');
-    var checked=idx===-1;
-    if(cb)cb.checked=checked;
-    opt.classList.toggle('checked',checked);
-  }
-  clRefreshCell(i);
-  clUpdateProgress();
+
+.meta-field input,
+.meta-field select{
+    width:180px;
+    padding:7px 10px;
+    box-sizing:border-box;
+    background:var(--surface);
+    border:1px solid var(--border-bright);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:.9rem;
+    outline:none;
+    transition:border-color .15s;
+    appearance:none;
+    -webkit-appearance:none;
 }
-function clRefreshCell(i){
-  var arr=CL_SELECTED[i]||[];
-  var cell=document.getElementById('cl-cell-'+i),toggle=document.getElementById('cl-toggle-'+i),label=document.getElementById('cl-toggle-label-'+i);
-  var hasVal=arr.length>0;
-  if(label)label.textContent=hasVal?arr.join(', '):'\u2014 Staff \u2014';
-  if(hasVal){cell.classList.add('done');toggle.classList.add('assigned');}
-  else{cell.classList.remove('done');toggle.classList.remove('assigned');}
+
+.meta-field input:focus,
+.meta-field select:focus{
+    border-color:var(--red);
 }
-function clUpdateProgress(){
-  var total=CL_POINTS.length;
-  var assigned=CL_POINTS.filter(function(_,i){return CL_SELECTED[i]&&CL_SELECTED[i].length>0;}).length;
-  var fill=document.getElementById('clProgressFill');
-  fill.style.width=(assigned/total*100)+'%';
-  if(assigned===total)fill.classList.add('complete'); else fill.classList.remove('complete');
-  document.getElementById('clProgressLabel').textContent=assigned+' / '+total+' assigned';
+
+.meta-field input[type="date"],
+.meta-field input[type="time"]{
+    width:160px;
 }
-function clReset(){
-  CL_POINTS.forEach(function(_,i){
-    CL_SELECTED[i]=[];
-    var panel=document.getElementById('cl-panel-'+i);
-    if(panel)panel.querySelectorAll('.ms-option').forEach(function(opt){
-      opt.classList.remove('checked');
-      var cb=opt.querySelector('input[type=checkbox]'); if(cb)cb.checked=false;
-    });
-    clRefreshCell(i);
-  });
-  clCloseAllPanels();
-  document.getElementById('clTheme').value='';
-  document.getElementById('clTime').value='';
-  document.getElementById('clDate').value=new Date().toISOString().split('T')[0];
-  clUpdateProgress();
+
+.meta-field select{
+    width:200px;
+    cursor:pointer;
+    padding-right:28px;
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23777'/%3E%3C/svg%3E");
 }
-async function clSubmit(){
-  var theme=document.getElementById('clTheme').value;
-  var date=document.getElementById('clDate').value;
-  var time=document.getElementById('clTime').value;
-  if(!theme||!date||!time){gToast('Fill in Theme, Date and Time first.',true);return;}
-  var payload={action:'engagement',theme:theme,date:date,time:time};
-  CL_POINTS.forEach(function(cp,i){
-    var key=cp.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
-    payload[key]=(CL_SELECTED[i]||[]).join(', ');
-  });
-  var btn=document.getElementById('clSubmitBtn'); btn.disabled=true; btn.textContent='Submitting\u2026';
-  try{
-    var form=new FormData();
-    form.append('payload',JSON.stringify(payload));
-    await fetch(CL_URL,{method:'POST',mode:'no-cors',body:form});
-    gToast('\u2714 Submitted to Google Sheets');
-    setTimeout(clReset,1500);
-  }catch(e){gToast('Connection error. Try again.',true);}
-  btn.disabled=false; btn.textContent='Submit to Sheet';
+
+.section-title{
+    padding:22px 28px 8px;
+    border-bottom:1px solid var(--border);
+    font-family:var(--mono);
+    font-size:.68rem;
+    color:var(--red);
+    letter-spacing:.15em;
+    text-transform:uppercase;
+}
+
+.checklist-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:1px;
+    margin:1px 0;
+    background:var(--border);
+}
+
+.check-cell{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:14px 18px;
+    background:var(--surface);
+    transition:background .15s;
+}
+
+.check-cell:hover{
+    background:var(--surface2);
+}
+
+.check-cell.done{
+    background:#0f1a0f;
+}
+
+.check-cell.done .cell-label{
+    color:var(--green);
+}
+
+.cell-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.cell-label{
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:.95rem;
+    font-weight:700;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    transition:color .2s;
+}
+
+.cell-index{
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:.6rem;
+}
+
+.staff-select{
+    width:100%;
+    box-sizing:border-box;
+    padding:5px 8px;
+    padding-right:28px;
+    background:var(--black);
+    border:1px solid var(--border-bright);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:.78rem;
+    cursor:pointer;
+    outline:none;
+    appearance:none;
+    -webkit-appearance:none;
+    transition:border-color .15s;
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23777'/%3E%3C/svg%3E");
+}
+
+.staff-select:focus{
+    border-color:var(--red);
+}
+
+.staff-select.assigned{
+    border-color:var(--green);
+    color:var(--green);
+}
+
+.multi-select{
+    position:relative;
+    width:100%;
+}
+
+.multi-select-toggle{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:6px;
+    width:100%;
+    box-sizing:border-box;
+    padding:5px 8px;
+    background:var(--black);
+    border:1px solid var(--border-bright);
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:.78rem;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s;
+}
+
+.multi-select-toggle:focus,
+.multi-select-toggle.open{
+    border-color:var(--red);
+}
+
+.multi-select-toggle.assigned{
+    border-color:var(--green);
+    color:var(--green);
+}
+
+.ms-label{
+    flex:1;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+}
+
+.ms-caret{
+    flex-shrink:0;
+    color:var(--text-dim);
+    font-size:.6rem;
+    transition:transform .15s;
+}
+
+.multi-select-toggle.open .ms-caret{
+    transform:rotate(180deg);
+}
+
+.multi-select-panel{
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    right:0;
+    display:none;
+    max-height:220px;
+    overflow-y:auto;
+    z-index:50;
+    background:var(--surface3);
+    border:1px solid var(--border-bright);
+    border-top:2px solid var(--red);
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+
+.multi-select-panel.open{
+    display:block;
+}
+
+.ms-option{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 10px;
+    color:var(--text-mid);
+    font-family:var(--mono);
+    font-size:.74rem;
+    cursor:pointer;
+    transition:.1s;
+}
+
+.ms-option:hover{
+    background:var(--surface2);
+    color:var(--text);
+}
+
+.ms-option input[type="checkbox"]{
+    width:13px;
+    height:13px;
+    flex-shrink:0;
+    cursor:pointer;
+    accent-color:var(--green);
+}
+
+.ms-option.checked{
+    color:var(--green);
+}
+
+.done-tick{
+    position:absolute;
+    top:10px;
+    right:14px;
+    opacity:0;
+    color:var(--green);
+    font-size:.8rem;
+    pointer-events:none;
+    transition:opacity .2s;
+}
+
+.check-cell.done .done-tick{
+    opacity:1;
+}
+
+.cl-footer{
+    position:sticky;
+    bottom:0;
+    z-index:100;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:12px 28px;
+    background:var(--surface);
+    border-top:2px solid var(--border);
+}
+
+.progress-wrap{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:1;
+}
+
+.progress-bar-bg{
+    flex:1;
+    max-width:300px;
+    height:4px;
+    background:var(--border);
+}
+
+.progress-bar-fill{
+    width:0;
+    height:100%;
+    background:var(--red);
+    transition:width .3s ease, background .3s ease;
+}
+
+.progress-bar-fill.complete{
+    background:var(--green);
+}
+
+.progress-label{
+    white-space:nowrap;
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:.72rem;
+}
+
+.cl-btn{
+    padding:10px 22px;
+    border:none;
+    cursor:pointer;
+    font-family:var(--mono);
+    font-size:.8rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    transition:.15s;
+}
+
+.cl-btn-reset{
+    background:transparent;
+    border:1px solid var(--border-bright);
+    color:var(--text-dim);
+}
+
+.cl-btn-reset:hover{
+    border-color:var(--red);
+    color:var(--red);
+}
+
+.cl-btn-submit{
+    background:var(--red);
+    color:#fff;
+}
+
+.cl-btn-submit:hover{
+    background:#c01515;
+}
+
+.cl-btn-submit:disabled{
+    background:var(--border);
+    color:var(--text-dim);
+    cursor:not-allowed;
 }
   
 // ===== INVENTORY ENGINE (reusable) =====
